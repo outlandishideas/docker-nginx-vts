@@ -1,7 +1,5 @@
 FROM alpine:3.8
 
-LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
-
 ENV NGINX_VERSION 1.15.8
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
@@ -49,7 +47,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 		--with-compat \
 		--with-file-aio \
 		--with-http_v2_module \
-	" \
+		--add-module=/tmp/vozlt/nginx-module-vts" \
 	&& addgroup -S nginx \
 	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
 	&& apk add --no-cache --virtual .build-deps \
@@ -65,6 +63,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 		libxslt-dev \
 		gd-dev \
 		geoip-dev \
+		git \
 	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
 	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
 	&& export GNUPGHOME="$(mktemp -d)" \
@@ -85,6 +84,8 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 	&& tar -zxC /usr/src -f nginx.tar.gz \
 	&& rm nginx.tar.gz \
 	&& cd /usr/src/nginx-$NGINX_VERSION \
+	&& mkdir -p /tmp/vozlt/nginx-module-vts \
+	&& git clone git://github.com/vozlt/nginx-module-vts.git /tmp/vozlt/nginx-module-vts \
 	&& ./configure $CONFIG --with-debug \
 	&& make -j$(getconf _NPROCESSORS_ONLN) \
 	&& mv objs/nginx objs/nginx-debug \
@@ -95,6 +96,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 	&& ./configure $CONFIG \
 	&& make -j$(getconf _NPROCESSORS_ONLN) \
 	&& make install \
+	&& rm -rf /tmp/vozlt/nginx-module-vts/ \
 	&& rm -rf /etc/nginx/html/ \
 	&& mkdir /etc/nginx/conf.d/ \
 	&& mkdir -p /usr/share/nginx/html/ \
